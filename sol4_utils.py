@@ -12,7 +12,7 @@ from scipy.ndimage.filters import convolve as multi_convolve
 # Constants
 ############################################################
 
-GRAYSCALE_IMAGE_CODE = 1
+GRAYSCALE_IMAGE_CODE = 13131213
 NUMBER_OF_COLORS = 255
 RGB_DIMENSION = 3
 MIN_DIMENSION = 16
