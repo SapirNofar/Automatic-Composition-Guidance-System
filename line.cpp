@@ -6,6 +6,7 @@
 
 using namespace cv;
 using namespace std;
+
 double deg2rad(double degrees)
 {
     return degrees * 4.0 * atan(1.0) / 180.0;
@@ -16,32 +17,46 @@ Mat getLine (Mat im)
     Mat filterdImage, greyImage, cannyImage, lineImage;
     cv::Mat kernel =  cv::getGaussianKernel(5, 5);
     cv::mulTransposed(kernel, kernel, false);
-    filter2D(im, filterdImage, -1, kernel);
-    cvtColor(filterdImage, greyImage, COLOR_RGB2GRAY);
-    Canny(greyImage, cannyImage, 0.2, 0.5);
+    filter2D(im, filterdImage, -1, kernel); //TODO check if color channels are not oposite order
 
+//    bee
+    Mat dst, cdst;
+    Canny(filterdImage, dst, 80, 180, 3);
+    cvtColor(dst, cdst, CV_GRAY2BGR);
     vector<Vec2f> lines;
+    HoughLines(dst, lines, 1.3, CV_PI/180, 100, 0, 0 );
+
+////    bird
+//    Canny(filterdImage, dst, 120, 300, 3);
+//    cvtColor(dst, cdst, CV_GRAY2BGR);
+//    vector<Vec2f> lines;
+//    HoughLines(dst, lines, 4, CV_PI/180, 100, 0, 0 );
+
     vector<vector<Point>> pLines;
     int threshold = 100;
-    HoughLines(cannyImage, lines, 5, CV_PI/180, threshold, 0, 0); //TODO check
-    // threshold
     double maxLen = 0;
     double len;
     Mat rho, theta;
     for( size_t i = 0; i < lines.size(); i++ )
     {
-        float r = lines[i][0], t = lines[i][1];
+        float r = cvRound(lines[i][0]), t = lines[i][1];
+        if(r < 0)
+        {
+            r *= -1;
+            t += CV_PI;
+        }
         rho.push_back(r);
         theta.push_back(t);
 
         Point pt1, pt2;
         double a = cos(t), b = sin(t);
         double x0 = a*r, y0 = b*r;
-        pt1.x = cvRound(x0 + pow(threshold, 2)*(-b));
-        pt1.y = cvRound(y0 + pow(threshold, 2)*(a));
-        pt2.x = cvRound(x0 - pow(threshold, 2)*(-b));
-        pt2.y = cvRound(y0 - pow(threshold, 2)*(a));
-        pLines.push_back(vector<Point>(pt1, pt2));
+        pt1.x = cvRound(x0 + 10*(-b));
+        pt1.y = cvRound(y0 + 10*(a));
+        pt2.x = cvRound(x0 - 10*(-b));
+        pt2.y = cvRound(y0 - 10*(a));
+        pLines.push_back(vector<Point>{pt1, pt2});
+
         len = norm(pt1 - pt2);
         if(len > maxLen)
         {
@@ -51,10 +66,15 @@ Mat getLine (Mat im)
 
     Mat rm, tm, rs, ts;
     meanStdDev(rho, rm, rs);
+    meanStdDev(theta, tm, ts);
+
     double rhoStd = rs.at<double>(0, 0);
     double rhoMean = rm.at<double>(0, 0);
     double thetaStd = ts.at<double>(0, 0);
     double thetaMean = tm.at<double>(0, 0);
+
+    rho -= rhoMean;
+    theta -= thetaMean;
 
     rho /= rhoStd;
     theta /= thetaStd;
@@ -70,54 +90,67 @@ Mat getLine (Mat im)
     {
         return  (Mat)(Mat::zeros(2, 2, CV_64F));
     }
-    else
-    {
+    else {
         int numCluster = std::min(5, rho.rows);
-        Mat samples, labels, centers;;
+        Mat samples, labels, centers;
         hconcat(rho, theta, samples);
         kmeans(samples, numCluster, labels,
                cv::TermCriteria(CV_TERMCRIT_ITER, 10, 0.1), 1, KMEANS_PP_CENTERS,
                centers);
-        Mat sum_line_length = (Mat)Mat::zeros(numCluster, 1, CV_64F);
-        for(int i = 0; i < labels.size; i++)
-        {
+        Mat sum_line_length = (Mat) Mat::zeros(numCluster, 1, CV_64F);
+        for (int i = 0; i < labels.rows; i++) {
             int j = labels.at<int>(i, 0);
-            Point p1 = pLines[j][0];
-            Point p2 = pLines[j][1];
+            Point p1 = pLines[i][0];
+            Point p2 = pLines[i][1];
             sum_line_length.at<double>(j, 0) += sqrt(pow(p1.x - p2.x, 2) +
-                                                          pow(p1.y - p2.y, 2));
+                                                     pow(p1.y - p2.y, 2));
         }
 
-        std::sort(sum_line_length.begin(), sum_line_length.end(), [](const double
-                                            a, const double b) { return a>b;});
+        Mat sorted_line_length;
+        cv::sortIdx(sum_line_length, sorted_line_length, SORT_EVERY_COLUMN + CV_SORT_DESCENDING);
 
+        Mat ab = (Mat)Mat::zeros(1, 2, CV_64F);
+        ab.at<double>(0,0) = centers.at<double>(0, 0) * rhoMean + rhoStd;
+        ab.at<double>(0,1) = centers.at<double>(0, 1) * thetaMean + thetaStd;
 
-        Mat ab = Mat_<double>(1, 2)  << (centers.at<double>(0) *  (Mat_<double>
-                (1, 2) << rhoStd, thetaStd) + (Mat_<double>(1, 2) << rhoMean, thetaMean));
-        auto rr = ab.at<double>(0);
-        auto tt = deg2rad(ab.at<double>(1));
+        double rr = ab.at<double>(0);
+        double tt = ab.at<double>(1);
 
         int height = im.rows;
         int width = im.cols;
-        Mat ips = Mat_<int>(4, 2) << 1, (rho - cos(theta)) / sin(theta),
-                width, (rho - width*cos(theta)) / sin(theta),
-                (rho-sin(theta))/cos(theta), 1, (rho - height*sin(theta)) /
-                cos(theta), height;
-        Mat endPoints = (Mat)(Mat::zeros(2, 2, CV_64F));
 
+        double a = (double) (rr - cos(tt)) / sin(tt);
+        double b = (rr - width * cos(tt)) / sin(tt);
+        double c = (rr - sin(tt)) / cos(tt);
+        double d = (rr - height * sin(tt)) / cos(tt);
+        double e = 1.0;
+        Mat ips = (Mat)Mat::zeros(4, 2, CV_64F);
+        ips.at<double>(0,0) = 1;
+        ips.at<double>(0,1) = a;
+        ips.at<double>(1,0) = width;
+        ips.at<double>(1,1) = b;
+        ips.at<double>(2,0) = c;
+        ips.at<double>(2,1) = 1;
+        ips.at<double>(3,0) = d;
+        ips.at<double>(3,1) = height;
+
+        cout << ips << endl;
+        Mat endPoints = (Mat) (Mat::zeros(2, 2, CV_64F));
         int j = 1;
-        for( int i = 0 ; i < 4; i++)
-        {
-            Mat p = ips.at<Mat>(i);
-            if(p.at<int>(0, 0) > 0 && p.at<int>(0, 0) <= width
-               && p.at<int>(1, 0) > 0 && p.at<int>(1, 0) <= height)
-            {
+        for (int i = 0; i < 4; i++) {
+            Mat p(1, 2, CV_64F);
+            p.at<double>(0,0) = ips.at<double>(i, 0);
+            p.at<double>(0,1) = ips.at<double>(i, 1);
+
+            if (p.at<int>(0, 0) > 0 && p.at<int>(0, 0) <= width
+                && p.at<int>(1, 0) > 0 && p.at<int>(1, 0) <= height) {
                 endPoints.at<Mat>(j) = p;
                 j++;
             }
         }
         return endPoints;
     }
-
-
 }
+
+
+
