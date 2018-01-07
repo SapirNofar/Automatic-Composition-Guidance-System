@@ -21,10 +21,11 @@ Mat getLine (Mat im)
 
 //    bee
     Mat dst, cdst;
-    Canny(filterdImage, dst, 80, 180, 3);
+    Canny(filterdImage, dst, 0.2, 0.5);
     cvtColor(dst, cdst, CV_GRAY2BGR);
     vector<Vec2f> lines;
-    HoughLines(dst, lines, 1.3, CV_PI/180, 100, 0, 0 );
+    HoughLines(dst, lines, 7, CV_PI/180, 100);
+    cout << lines.size() << endl;
 
 ////    bird
 //    Canny(filterdImage, dst, 120, 300, 3);
@@ -56,6 +57,7 @@ Mat getLine (Mat im)
         pt2.x = cvRound(x0 - 10*(-b));
         pt2.y = cvRound(y0 - 10*(a));
         pLines.push_back(vector<Point>{pt1, pt2});
+        line( cdst, pt1, pt2, Scalar(0,0,255), 6, CV_AA);
 
         len = norm(pt1 - pt2);
         if(len > maxLen)
@@ -63,6 +65,8 @@ Mat getLine (Mat im)
             maxLen = len;
         }
     }
+    imshow(" ", cdst);
+    waitKey();
 
     Mat rm, tm, rs, ts;
     meanStdDev(rho, rm, rs);
@@ -126,25 +130,25 @@ Mat getLine (Mat im)
         double e = 1.0;
         Mat ips = (Mat)Mat::zeros(4, 2, CV_64F);
         ips.at<double>(0,0) = 1;
-        ips.at<double>(0,1) = a;
+        ips.at<double>(0,1) = cvRound(a);
         ips.at<double>(1,0) = width;
-        ips.at<double>(1,1) = b;
-        ips.at<double>(2,0) = c;
+        ips.at<double>(1,1) = cvRound(b);
+        ips.at<double>(2,0) = cvRound(c);
         ips.at<double>(2,1) = 1;
-        ips.at<double>(3,0) = d;
+        ips.at<double>(3,0) = cvRound(d);
         ips.at<double>(3,1) = height;
 
-        cout << ips << endl;
         Mat endPoints = (Mat) (Mat::zeros(2, 2, CV_64F));
-        int j = 1;
+        int j = 0;
         for (int i = 0; i < 4; i++) {
             Mat p(1, 2, CV_64F);
             p.at<double>(0,0) = ips.at<double>(i, 0);
             p.at<double>(0,1) = ips.at<double>(i, 1);
 
-            if (p.at<int>(0, 0) > 0 && p.at<int>(0, 0) <= width
-                && p.at<int>(1, 0) > 0 && p.at<int>(1, 0) <= height) {
-                endPoints.at<Mat>(j) = p;
+            if (p.at<double>(0, 0) > 0 && p.at<double>(0, 0) <= width
+                && p.at<double>(0, 1) > 0 && p.at<double>(0, 1) <= height) {
+                endPoints.at<double>(j,0) = p.at<double>(0, 0);
+                endPoints.at<double>(j,1) = p.at<double>(0, 1);
                 j++;
             }
         }
