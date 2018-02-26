@@ -7,7 +7,8 @@
 using namespace std;
 using namespace cv;
 
-int getLineValue(Mat &endPoints, int w, int h, double* line_value, double* line_info)
+void getLineValue(Mat &endPoints, int w, int h, double* line_value, double*
+line_info)
 {
 
     Mat thirds_line = (Mat)Mat::zeros(4, 4, CV_64F);
@@ -158,5 +159,4 @@ int getLineValue(Mat &endPoints, int w, int h, double* line_value, double* line_
         *line_value = (double)exp(-dist*dist*0.5/pow(sigma_line,2));
     }
 
-    return 0;
 }

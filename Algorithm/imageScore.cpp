@@ -5,6 +5,9 @@
 #include <fstream>
 
 #include "line.cpp" //TODO h
+#include "lineValue.cpp" //TODO h
+#include "FASA.cpp" //TODO h
+#include "connectedcomponents.h" //TODO h
 
 using namespace cv;
 using namespace std;
@@ -39,6 +42,8 @@ using namespace std;
 
 double getScore(Mat im)
 {
+    Mat grayScaleIm;
+    cvtColor(im, grayScaleIm, COLOR_RGB2GRAY);
     int height = im.rows;
     int width = im.cols;
     int colorsNum = im.channels();
@@ -54,6 +59,11 @@ double getScore(Mat im)
     double balanceCenterY = 0.5 * height;
 
     Mat endPoints = getLine(im);
+    double line_value,  line_info;
+    getLineValue(endPoints, width, height, &line_value, &line_info);
+    Mat map = getFASA(im); //TODO: change name of func!
+
+
 
 
 

@@ -21,7 +21,7 @@ Mat getLine (Mat im)
 
 //    bee
     Mat dst, cdst;
-    Canny(filterdImage, dst, 0.2, 0.5);
+    Canny(filterdImage, dst, 50, 127);
     cvtColor(dst, cdst, CV_GRAY2BGR);
     vector<Vec2f> lines;
     HoughLines(dst, lines, 7, CV_PI/180, 100);
@@ -57,7 +57,7 @@ Mat getLine (Mat im)
         pt2.x = cvRound(x0 - 10*(-b));
         pt2.y = cvRound(y0 - 10*(a));
         pLines.push_back(vector<Point>{pt1, pt2});
-        line( cdst, pt1, pt2, Scalar(0,0,255), 6, CV_AA);
+//        line( cdst, pt1, pt2, Scalar(0,0,255), 6, CV_AA);
 
         len = norm(pt1 - pt2);
         if(len > maxLen)
