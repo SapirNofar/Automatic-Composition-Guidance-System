@@ -656,7 +656,34 @@ Mat getFASA(Mat im) {
                                mapPtr,
                                SM,
                                saliency);
-            return SM;
+
+            double minVal, maxVal;
+
+            minMaxLoc(shapeProbability, &minVal, &maxVal);
+
+            shapeProbability = shapeProbability - minVal;
+            shapeProbability = shapeProbability / (maxVal - minVal + 1e-3);
+
+            float* shapeProbabilityPtr      = shapeProbability.ptr<float>(0);
+
+            Mat saliencyProbabilityImage    = Mat::zeros(im.rows, im.cols, CV_32FC1);
+
+            for (int y = 0; y < im.rows; y++){
+
+                float* saliencyProbabilityImagePtr  = saliencyProbabilityImage.ptr<float>(y);
+
+                int* histogramIndexPtr = histogramIndex.ptr<int>(y);
+
+                for (int x = 0; x < im.cols; x++){
+
+                    saliencyProbabilityImagePtr[x]  = shapeProbabilityPtr[mapPtr[histogramIndexPtr[x]]];
+
+                }
+            }
+
+            saliencyProbabilityImage = 255 * saliencyProbabilityImage;
+            saliencyProbabilityImage.convertTo(saliencyProbabilityImage, CV_8UC1);
+            return saliencyProbabilityImage;
         }
     }
 }

@@ -25,7 +25,6 @@ Mat getLine (Mat im)
     cvtColor(dst, cdst, CV_GRAY2BGR);
     vector<Vec2f> lines;
     HoughLines(dst, lines, 7, CV_PI/180, 100);
-    cout << lines.size() << endl;
 
 ////    bird
 //    Canny(filterdImage, dst, 120, 300, 3);
@@ -57,7 +56,6 @@ Mat getLine (Mat im)
         pt2.x = cvRound(x0 - 10*(-b));
         pt2.y = cvRound(y0 - 10*(a));
         pLines.push_back(vector<Point>{pt1, pt2});
-//        line( cdst, pt1, pt2, Scalar(0,0,255), 6, CV_AA);
 
         len = norm(pt1 - pt2);
         if(len > maxLen)
@@ -65,8 +63,7 @@ Mat getLine (Mat im)
             maxLen = len;
         }
     }
-    imshow(" ", cdst);
-    waitKey();
+
 
     Mat rm, tm, rs, ts;
     meanStdDev(rho, rm, rs);
