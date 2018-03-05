@@ -7,63 +7,122 @@
 using namespace cv;
 using namespace std;
 
-double deg2rad(double degrees)
+
+template<typename T>
+bool inline find(T key, cv::Mat M)
 {
-    return degrees * 4.0 * atan(1.0) / 180.0;
+    int pos = 0;
+    std::vector<T> result;
+    if(M.dims > 0) {
+        std::for_each(M.begin<T>(), M.end<T>(), [&](T &m) {
+            if (m == key) {
+                result.push_back(key);
+            }
+            pos++;
+        });
+    }
+    return result.size() == 0;
+}
+
+
+cv::Vec2f twoPoints2Polar(const cv::Vec4i& line)
+{
+    // Get points from the vector
+    cv::Point2f p1(line[0], line[1]);
+    cv::Point2f p2(line[2], line[3]);
+
+    // Compute 'rho' and 'theta'
+    float rho = abs(p2.x*p1.y - p2.y*p1.x) / cv::norm(p2 - p1);
+    float theta = -atan2((p2.x - p1.x) , (p2.y - p1.y));
+
+    // You can have a negative distance from the center
+    // when the angle is negative
+    if (theta < 0) {
+        rho = -rho;
+    }
+
+    return cv::Vec2f(rho, theta);
 }
 
 Mat getLine (Mat im)
 {
+    int height = im.rows;
+    int width = im.cols;
     Mat filterdImage, greyImage, cannyImage, lineImage;
     cv::Mat kernel =  cv::getGaussianKernel(5, 5);
     cv::mulTransposed(kernel, kernel, false);
-    filter2D(im, filterdImage, -1, kernel); //TODO check if color channels are not oposite order
+    filter2D(im, filterdImage, -1, kernel);
+    cvtColor(filterdImage, greyImage, COLOR_RGB2GRAY);
 
-//    bee
-    Mat dst, cdst;
-    Canny(filterdImage, dst, 50, 127);
+    Mat dst, cdst, cdstP;
+    GaussianBlur(greyImage, cannyImage, Size(15,15), 2);
+    Canny(cannyImage, dst, 50, 127);
+//    imshow("canny", dst);
     cvtColor(dst, cdst, CV_GRAY2BGR);
-    vector<Vec2f> lines;
-    HoughLines(dst, lines, 7, CV_PI/180, 100);
+    cdstP = cdst.clone(); //TODO
 
-////    bird
-//    Canny(filterdImage, dst, 120, 300, 3);
-//    cvtColor(dst, cdst, CV_GRAY2BGR);
-//    vector<Vec2f> lines;
-//    HoughLines(dst, lines, 4, CV_PI/180, 100, 0, 0 );
+//    std::vector<Vec2f> lines;
+//    HoughLines(dst, lines, 1, CV_PI/180.0, 100);
+//    cout << lines.size() << endl;
 
-    vector<vector<Point>> pLines;
-    int threshold = 100;
-    double maxLen = 0;
-    double len;
+//    vector<vector<Point>> pLines;
+//    int threshold = 100;
+//    double maxLen = 0;
+//    double len;
     Mat rho, theta;
-    for( size_t i = 0; i < lines.size(); i++ )
+//    for( size_t i = 0; i < lines.size(); i++ )
+//    {
+//
+//        float r = lines[i][0], t = lines[i][1];
+//        if(r < 0)
+//        {
+//            r *= -1;
+//            t += CV_PI;
+//        }
+//        if(find(t, theta))
+//        {
+//            rho.push_back(r);
+//            theta.push_back(t);
+////            cout << r << "\t" << t << endl;
+//        }
+//        Point pt1, pt2;
+//        double a = cos(t), b = sin(t);
+//        double x0 = a*r, y0 = b*r;
+//        pt1.x = cvRound(x0 - 10*b);// + width / 2;
+//        pt1.y = cvRound(y0 + 10*a);// + height / 2;
+//        pt2.x = cvRound(x0 + 10*b);// + width / 2;
+//        pt2.y = cvRound(y0 - 10*a);// + height / 2;
+//        cout << pt1 << "\t" << pt2 << endl;
+//        pLines.push_back(vector<Point>{pt1, pt2});
+//        line(cdst, pt1, pt2, Scalar(0,0,255), 2);
+//
+//        len = norm(pt1 - pt2);
+//        if(len > maxLen)
+//        {
+//            maxLen = len;
+//        }
+//    }
+//
+//    cout << rho.size() << endl;
+
+    vector<Vec4i> lines;
+    HoughLinesP(dst, lines, 1, CV_PI/180, 10, 50, 10);
+//    cout << lines.size() << endl;
+    for( size_t i = 0; i < lines.size(); i++)
     {
-        float r = cvRound(lines[i][0]), t = lines[i][1];
-        if(r < 0)
-        {
-            r *= -1;
-            t += CV_PI;
-        }
-        rho.push_back(r);
-        theta.push_back(t);
-
+        Vec4i l = lines[i];
         Point pt1, pt2;
-        double a = cos(t), b = sin(t);
-        double x0 = a*r, y0 = b*r;
-        pt1.x = cvRound(x0 + 10*(-b));
-        pt1.y = cvRound(y0 + 10*(a));
-        pt2.x = cvRound(x0 - 10*(-b));
-        pt2.y = cvRound(y0 - 10*(a));
-        pLines.push_back(vector<Point>{pt1, pt2});
-
-        len = norm(pt1 - pt2);
-        if(len > maxLen)
-        {
-            maxLen = len;
-        }
+//        cout << l[0] << "\t" << l[1] << "\t" << l[2] << "\t" << l[3] << endl;
+        Vec2f rhoTheta = twoPoints2Polar(lines[i]);
+        rho.push_back(rhoTheta[0]);
+        theta.push_back(rhoTheta[1]);
+        line( cdstP, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, 16);
     }
 
+//    imshow("hough", cdst);
+//    waitKey(0);
+//    imshow("hough1111", cdstP);
+//    waitKey(0);
 
     Mat rm, tm, rs, ts;
     meanStdDev(rho, rm, rs);
@@ -101,8 +160,8 @@ Mat getLine (Mat im)
         Mat sum_line_length = (Mat) Mat::zeros(numCluster, 1, CV_64F);
         for (int i = 0; i < labels.rows; i++) {
             int j = labels.at<int>(i, 0);
-            Point p1 = pLines[i][0];
-            Point p2 = pLines[i][1];
+            Point p1 = Point(lines[i][0], lines[i][1]);
+            Point p2 = Point(lines[i][2], lines[i][3]);
             sum_line_length.at<double>(j, 0) += sqrt(pow(p1.x - p2.x, 2) +
                                                      pow(p1.y - p2.y, 2));
         }
