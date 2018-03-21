@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
-
+#import <opencv2/videoio/cap_ios.h>
+#include <opencv2/opencv.hpp>
 @protocol SHDCameraUtilityDelegate;
 
 @interface SHDCameraUtility : NSObject

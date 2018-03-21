@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 
-@interface SHDPhotoPreviewViewController : UIViewController
+@interface SHDPhotoPreviewViewController : UIViewController 
 
 @property UIImage *sourceImage;
 
