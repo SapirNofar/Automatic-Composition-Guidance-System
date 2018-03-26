@@ -1,5 +1,4 @@
 #import <UIKit/UIKit.h>
-
 @class SHDSharePopupView;
 
 @protocol SHDSharePopupViewDelegate <NSObject>
