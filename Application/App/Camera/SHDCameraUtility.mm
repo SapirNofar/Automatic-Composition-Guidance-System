@@ -7,6 +7,7 @@
 #import <UIKit/UIColor.h>
 #import <UIKit/UIGeometry.h>
 
+
 @interface SHDCameraUtility () <AVCaptureVideoDataOutputSampleBufferDelegate>
 @property (nonatomic, strong) UIView *videoLayerView;
 @property (nonatomic, strong) AVCaptureSession *captureSession;
@@ -23,6 +24,7 @@
     UIImage *image;
     int counter;
     NSTimer *timer;
+    BOOL busy;
 }
 
 #pragma mark - Lifecycle
@@ -98,6 +100,7 @@
     
     //Start capture session
     [_captureSession startRunning];
+    busy = NO;
     timer = [NSTimer scheduledTimerWithTimeInterval:2.0
                                      target:self
                                    selector:@selector(callingOurAlgo)
@@ -290,26 +293,68 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 }
 
 -(void) callingOurAlgo {
-    for(int i = 0; i < 10000; i++)
-    {
-        //
-    }
+//    for(int i = 0; i < 10000; i++)
+//    {
+//        //
+//    }
 
-    UIAlertView *alertView = [[UIAlertView alloc]
-                              initWithTitle:@"title"
-                              message:@"message"
-                              delegate:nil
-                              cancelButtonTitle:nil
-                              otherButtonTitles:nil
-                              ];
-    [alertView show];
-    [self performSelector:@selector(dismissAlert:)
-               withObject:alertView
-               afterDelay:5.0
-     ];
-//    NSLog(@"the %i time", counter);
-//    counter ++;
-    
+    //TODO move?
+    if (!busy)
+    {
+        busy = YES;
+        cv::Mat img = [self cvMatFromUIImage];
+        //double score = getScore(img);
+        
+        int zone = getImageScore(img); // from nofar
+        NSString *msg; // = [NSString stringWithFormat: @"%i", zone];
+        
+        switch(zone)
+        {
+            case 0 :
+                msg = @"UP LEFT";
+                break;
+            case 1 :
+                msg = @"UP";
+                break;
+            case 2 :
+                msg = @"UP RIGHT";
+                break;
+            case 3 :
+                msg = @"LEFT";
+                break;
+            case 4 :
+                msg = @"STAY";
+                break;
+            case 5 :
+                msg = @"RIGHT";
+                break;
+            case 6 :
+                msg = @"DOWN LEFT";
+                break;
+            case 7 :
+                msg =@"DOWN";
+                break;
+            case 8 :
+                msg = @"DOWN RIGHT";
+                break;
+            default :
+                msg = @"Invalid";
+        }
+        
+        UIAlertView *alertView = [[UIAlertView alloc]
+                                  initWithTitle:@"zone"
+                                  message:msg
+                                  delegate:nil
+                                  cancelButtonTitle:nil
+                                  otherButtonTitles:nil
+                                  ];
+        [alertView show];
+        [self performSelector:@selector(dismissAlert:)
+                   withObject:alertView
+                   afterDelay:2.0
+         ];
+        busy = NO;
+    }
 }
 
 - (void)dismissAlert:(UIAlertView *)alertView
@@ -358,9 +403,27 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     return (image);
 }
 
-
-
-
+- (cv::Mat)cvMatFromUIImage
+{
+    CGColorSpaceRef colorSpace = CGImageGetColorSpace(image.CGImage);
+    CGFloat cols = image.size.width;
+    CGFloat rows = image.size.height;
+    
+    cv::Mat cvMat(rows, cols, CV_8UC4); // 8 bits per component, 4 channels (color channels + alpha)
+    
+    CGContextRef contextRef = CGBitmapContextCreate(cvMat.data,                 // Pointer to  data
+                                                    cols,                       // Width of bitmap
+                                                    rows,                       // Height of bitmap
+                                                    8,                          // Bits percomponent
+                                                    cvMat.step[0],              // Bytes per row
+                                                    colorSpace,                 // Colorspace
+                                                    kCGImageAlphaNoneSkipLast |
+                                                    kCGBitmapByteOrderDefault); // Bitmap info flags
+    
+    CGContextDrawImage(contextRef, CGRectMake(0, 0, cols, rows), image.CGImage);
+    CGContextRelease(contextRef);
+    
+    return cvMat;
+}
 
 @end
-
