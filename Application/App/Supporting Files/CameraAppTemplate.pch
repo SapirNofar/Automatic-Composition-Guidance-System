@@ -1,8 +1,17 @@
+#ifndef CameraAppTemplate_pch
+
+#define CameraAppTemplate_pch
 #import <Availability.h>
+
+#ifdef __cplusplus
+#import <opencv2/opencv.hpp>
+#endif
 
 #ifndef __IPHONE_8_0
 #warning "This project uses features only available in iOS SDK 7.0 and later."
 #endif
+
+
 
 #ifdef __OBJC__
 
@@ -16,5 +25,7 @@
 
 #import "UIView+roundLayer.h"
 #import "UILabel+Boldify.h"
+
+#endif
 
 #endif
