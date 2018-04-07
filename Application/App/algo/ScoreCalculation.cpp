@@ -5,55 +5,49 @@ using namespace std;
 
 cv::Mat calc9(cv::Mat im, cv::Point startPoint, int range_height, int range_width)
 {
+//    cout << "image size:" << "\t" << im.cols << "\t" << im.rows << endl;
+
     cv::Mat scores = (cv::Mat)cv::Mat::zeros(3, 3, CV_64F);
-    scores.at<double>(1,1) = getScore(im(cv::Range(startPoint.x, startPoint.x + range_height),
-                                         cv::Range(startPoint.y, startPoint.y + range_width)));
+    scores.at<double>(1,1) = getScore(im(cv::Range(startPoint.y, startPoint.y + range_height), cv::Range(startPoint.x, startPoint.x + range_width)));
+                                         
     if(startPoint.x - JUMP >= 0 && startPoint.y - JUMP >= 0)
     {
-        scores.at<double>(0,0) = getScore(im(cv::Range(startPoint.x - JUMP, startPoint.x - JUMP + range_height),
-                                             cv::Range(startPoint.y - JUMP, startPoint.y - JUMP + range_width)));
+        scores.at<double>(0,0) = getScore(im(cv::Range(startPoint.y - JUMP, startPoint.y - JUMP + range_height), cv::Range(startPoint.x - JUMP, startPoint.x - JUMP + range_width)));
     }
     
     if(startPoint.x - JUMP >= 0)
     {
-        scores.at<double>(1,0) = getScore(im(cv::Range(startPoint.x - JUMP, startPoint.x - JUMP + range_height),
-                                             cv::Range(startPoint.y, startPoint.y + range_width)));
+        scores.at<double>(1,0) = getScore(im(cv::Range(startPoint.y, startPoint.y + range_height), cv::Range(startPoint.x - JUMP, startPoint.x - JUMP + range_width)));
     }
     
-    if(startPoint.x - JUMP >= 0 && startPoint.y + JUMP + range_width < im.rows)
+    if(startPoint.x - JUMP >= 0 && startPoint.y + JUMP + range_height < im.rows)
     {
-        scores.at<double>(2,0) = getScore(im(cv::Range(startPoint.x - JUMP, startPoint.x - JUMP + range_height),
-                                             cv::Range(startPoint.y + JUMP, startPoint.y + JUMP + range_width)));
+        scores.at<double>(2,0) = getScore(im(cv::Range(startPoint.y + JUMP, startPoint.y + JUMP + range_height), cv::Range(startPoint.x - JUMP, startPoint.x - JUMP + range_width)));
     }
     
     if(startPoint.y - JUMP >= 0)
     {
-        scores.at<double>(0,1) = getScore(im(cv::Range(startPoint.x, startPoint.x + range_height),
-                                             cv::Range(startPoint.y - JUMP, startPoint.y - JUMP + range_width)));
+        scores.at<double>(0,1) = getScore(im(cv::Range(startPoint.y - JUMP, startPoint.y - JUMP + range_height), cv::Range(startPoint.x, startPoint.x + range_width)));
     }
     
-    if(startPoint.y + JUMP + range_width < im.rows)
+    if(startPoint.y + JUMP + range_height < im.rows)
     {
-        scores.at<double>(2,1) = getScore(im(cv::Range(startPoint.x, startPoint.x + range_height),
-                                             cv::Range(startPoint.y + JUMP, startPoint.y + JUMP + range_width)));
+        scores.at<double>(2,1) = getScore(im(cv::Range(startPoint.y + JUMP, startPoint.y + JUMP + range_height), cv::Range(startPoint.x, startPoint.x + range_width)));
     }
     
-    if(startPoint.x + JUMP + range_height < im.cols && startPoint.y - JUMP >= 0)
+    if(startPoint.x + JUMP + range_width < im.cols && startPoint.y - JUMP >= 0)
     {
-        scores.at<double>(0,2) = getScore(im(cv::Range(startPoint.x + JUMP, startPoint.x + JUMP + range_height),
-                                             cv::Range(startPoint.y - JUMP, startPoint.y - JUMP + range_width)));
+        scores.at<double>(0,2) = getScore(im(cv::Range(startPoint.y - JUMP, startPoint.y - JUMP + range_height), cv::Range(startPoint.x + JUMP, startPoint.x + JUMP + range_width)));
     }
     
-    if(startPoint.x + JUMP + range_height < im.cols)
+    if(startPoint.x + JUMP + range_width < im.cols)
     {
-        scores.at<double>(1,2) = getScore(im(cv::Range(startPoint.x + JUMP, startPoint.x + JUMP + range_height),
-                                             cv::Range(startPoint.y, startPoint.y + range_width)));
+        scores.at<double>(1,2) = getScore(im(cv::Range(startPoint.y, startPoint.y + range_height), cv::Range(startPoint.x + JUMP, startPoint.x + JUMP + range_width)));
     }
     
-    if(startPoint.x + JUMP + range_height < im.cols && startPoint.y + JUMP + range_width < im.rows)
+    if(startPoint.x + JUMP + range_width < im.cols && startPoint.y + JUMP + range_height < im.rows)
     {
-        scores.at<double>(2,2) = getScore(im(cv::Range(startPoint.x + JUMP, startPoint.x + JUMP + range_height),
-                                             cv::Range(startPoint.y + JUMP, startPoint.y + JUMP + range_width)));
+        scores.at<double>(2,2) = getScore(im(cv::Range(startPoint.y + JUMP, startPoint.y + JUMP + range_height), cv::Range(startPoint.x + JUMP, startPoint.x + JUMP + range_width)));
     }
     
     return scores;
@@ -66,13 +60,17 @@ int getImageScore(cv::Mat im)
     int width = im.cols;
     
     cout << "image size:" << "\t" << height << "\t" << width << endl;
+    if(height == 0 || width == 0)
+    {
+        return -1;
+    }
     int range_height = int(height * (8./9));
     int range_width = int(width * (8./9));
-//    int height1 = 5*JUMP;
-//    int width1 = 5*JUMP;
+    int height1 = JUMP;
+    int width1 = JUMP;
     // TODO what is the best range for jump??
-        int height1 = int(range_height * (1./3));
-        int width1 = int(range_width * (1./3));
+//        int height1 = int(range_height * (1./3));
+//        int width1 = int(range_width * (1./3));
 //    int height2 = int(range_height * (2./3));
 //    int width2 = int(range_width * (2./3));
     
@@ -85,12 +83,12 @@ int getImageScore(cv::Mat im)
                       cv::Range(startPoint.y, startPoint.y + range_width)));
     middleScore = 0;
 //    cout << "start point:" << "\t" << startPoint << endl;
-    cout << "start score:" << "\t" << max << endl;
+//    cout << "start score:" << "\t" << max << endl;
 //    cout << height1 << "\t" << height2 << endl;
 //    cout << width1 << "\t" << width2 << endl;
     while(max > middleScore)
     {
-            cout << "start point:" << "\t" << startPoint << endl;
+//            cout << "start point:" << "\t" << startPoint << endl;
         cv::Mat tempScore9 = calc9(im, startPoint, range_height, range_width);
         middleScore = tempScore9.at<double>(1,1);
         cv::minMaxLoc(tempScore9, &min, &max, &min_loc, &max_loc);
@@ -142,54 +140,54 @@ int getImageScore(cv::Mat im)
         
 //        cout << "new point: " << "\t" << startPoint << endl;
     }
-    cout << "FINAL SCORE\t" << max <<endl;
-    cout << "FINAL POINT" << endl;
+//    cout << "FINAL SCORE\t" << max <<endl;
+//    cout << "FINAL POINT" << endl;
     cv::Point delta = initialPoint - startPoint;
 
     
     if((std::abs(delta.x) > width1 && delta.x > 0) && (std::abs(delta.y) > height1 && delta.y > 0))
     {
-        cout << "UP LEFT" << endl;
+//        cout << "UP LEFT" << endl;
         return 0;
     }
     else if((std::abs(delta.x) < width1) && (std::abs(delta.y) > height1 && delta.y > 0))
     {
-        cout << "UP" << endl;
+//        cout << "UP" << endl;
         return 1;
     }
     else if((std::abs(delta.x) > width1 && delta.x < 0) && (std::abs(delta.y) > height1 && delta.y > 0))
     {
-        cout << "UP RIGHT" << endl;
+//        cout << "UP RIGHT" << endl;
         return 2;
     }
     else if((std::abs(delta.x) > width1 && delta.x > 0) && (std::abs(delta.y) < height1))
     {
-        cout << "LEFT" << endl;
+//        cout << "LEFT" << endl;
         return 3;
     }
     else if((std::abs(delta.x) > width1 && delta.x < 0) && (std::abs(delta.y) < height1))
     {
-        cout << "RIGHT" << endl;
+//        cout << "RIGHT" << endl;
         return 5;
     }
     else if((std::abs(delta.x) > width1 && delta.x > 0) && (std::abs(delta.y) > height1 && delta.y < 0))
     {
-        cout << "DOWN LEFT" << endl;
+//        cout << "DOWN LEFT" << endl;
         return 6;
     }
     else if((std::abs(delta.x) < width1) && (std::abs(delta.y) > height1 && delta.y < 0))
     {
-        cout << "DOWN" << endl;
+//        cout << "DOWN" << endl;
         return 7;
     }
     else if((std::abs(delta.x) > width1 && delta.x < 0) && (std::abs(delta.y) > height1 && delta.y < 0))
     {
-        cout << "DOWN RIGHT" << endl;
+//        cout << "DOWN RIGHT" << endl;
         return 8;
     }
     else
     {
-        cout << "STAY" <<  endl;
+//        cout << "STAY" <<  endl;
         return 4;
     }
     

@@ -3,6 +3,7 @@
 #include "opencv2/opencv.hpp"
 #include <dirent.h>
 #include <fstream>
+//#include <pthread.h>
 #include "line.h" //TODO h
 #include "FASA.h" //TODO h
 
