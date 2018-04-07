@@ -28,7 +28,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Plg-Mz-ZBo">
-                                <rect key="frame" x="0.0" y="551" width="375" height="116"/>
+                                <rect key="frame" x="0.0" y="550" width="375" height="117"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="alu-Hm-1NT">
                                         <rect key="frame" x="125" y="0.0" width="125" height="116"/>
@@ -117,10 +117,10 @@
                                 </subviews>
                                 <color key="backgroundColor" cocoaTouchSystemColor="darkTextColor"/>
                                 <constraints>
-                                    <constraint firstAttribute="bottom" secondItem="alu-Hm-1NT" secondAttribute="bottom" id="0YI-bq-Kx5"/>
-                                    <constraint firstAttribute="bottom" secondItem="iBU-fI-TSc" secondAttribute="bottom" id="744-Ur-ecn"/>
+                                    <constraint firstAttribute="bottom" secondItem="alu-Hm-1NT" secondAttribute="bottom" constant="1" id="0YI-bq-Kx5"/>
+                                    <constraint firstAttribute="bottom" secondItem="iBU-fI-TSc" secondAttribute="bottom" constant="1" id="744-Ur-ecn"/>
                                     <constraint firstItem="iBU-fI-TSc" firstAttribute="width" secondItem="EcO-gy-3gJ" secondAttribute="width" id="CFh-XY-5gS"/>
-                                    <constraint firstAttribute="bottom" secondItem="EcO-gy-3gJ" secondAttribute="bottom" id="Cwx-lA-UVV"/>
+                                    <constraint firstAttribute="bottom" secondItem="EcO-gy-3gJ" secondAttribute="bottom" constant="1" id="Cwx-lA-UVV"/>
                                     <constraint firstItem="EcO-gy-3gJ" firstAttribute="top" secondItem="Plg-Mz-ZBo" secondAttribute="top" id="GaY-R9-dpB"/>
                                     <constraint firstItem="iBU-fI-TSc" firstAttribute="leading" secondItem="alu-Hm-1NT" secondAttribute="trailing" id="Rf4-mU-EvG"/>
                                     <constraint firstItem="iBU-fI-TSc" firstAttribute="top" secondItem="Plg-Mz-ZBo" secondAttribute="top" id="Up6-Wc-xol"/>
@@ -128,23 +128,23 @@
                                     <constraint firstItem="alu-Hm-1NT" firstAttribute="top" secondItem="Plg-Mz-ZBo" secondAttribute="top" id="fg7-ex-FuH"/>
                                     <constraint firstItem="alu-Hm-1NT" firstAttribute="leading" secondItem="EcO-gy-3gJ" secondAttribute="trailing" id="g5x-qm-BNx"/>
                                     <constraint firstItem="alu-Hm-1NT" firstAttribute="width" secondItem="EcO-gy-3gJ" secondAttribute="width" id="mqw-ZV-AfU"/>
-                                    <constraint firstAttribute="height" constant="116" id="qqo-9R-5S0"/>
+                                    <constraint firstAttribute="height" constant="117" id="qqo-9R-5S0"/>
                                     <constraint firstAttribute="trailing" secondItem="iBU-fI-TSc" secondAttribute="trailing" id="zCW-Zi-BQT"/>
                                 </constraints>
                             </view>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="52a-33-D78">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="554"/>
-                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="550"/>
+                                <color key="backgroundColor" red="1" green="0.40000000600000002" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                             </view>
                         </subviews>
-                        <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="Plg-Mz-ZBo" firstAttribute="centerX" secondItem="52a-33-D78" secondAttribute="centerX" id="9cb-W1-Dun"/>
                             <constraint firstAttribute="trailing" secondItem="Plg-Mz-ZBo" secondAttribute="trailing" id="A0D-uo-VSz"/>
-                            <constraint firstItem="52a-33-D78" firstAttribute="leading" secondItem="v14-rE-e8s" secondAttribute="leadingMargin" constant="-16" id="h50-dt-L1M"/>
-                            <constraint firstItem="52a-33-D78" firstAttribute="top" secondItem="2Oi-Vd-nLX" secondAttribute="bottom" constant="-20" id="nJC-IL-Zx7"/>
+                            <constraint firstItem="Plg-Mz-ZBo" firstAttribute="top" secondItem="52a-33-D78" secondAttribute="bottom" id="Gto-U9-80V"/>
+                            <constraint firstItem="52a-33-D78" firstAttribute="trailing" secondItem="Plg-Mz-ZBo" secondAttribute="trailing" id="SYC-S0-UMp"/>
+                            <constraint firstItem="52a-33-D78" firstAttribute="leading" secondItem="Plg-Mz-ZBo" secondAttribute="leading" id="Tp5-X3-ziI"/>
                             <constraint firstItem="Plg-Mz-ZBo" firstAttribute="leading" secondItem="v14-rE-e8s" secondAttribute="leading" id="nct-lb-ZiE"/>
-                            <constraint firstAttribute="bottom" secondItem="52a-33-D78" secondAttribute="bottom" constant="113" id="pTv-bY-lBV"/>
+                            <constraint firstItem="52a-33-D78" firstAttribute="top" secondItem="v14-rE-e8s" secondAttribute="top" id="wXi-lx-rka"/>
                             <constraint firstItem="Plg-Mz-ZBo" firstAttribute="bottom" secondItem="ebV-zz-FVm" secondAttribute="top" id="xhY-bM-jcb"/>
                         </constraints>
                     </view>

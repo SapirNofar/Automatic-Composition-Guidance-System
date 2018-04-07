@@ -5,6 +5,7 @@
 @interface SHDCameraViewController () <SHDCameraUtilityDelegate>
 @property (weak, nonatomic) IBOutlet UIView *cameraParentView;
 @property (strong, nonatomic) IBOutletCollection(UIButton) NSArray *rotatedElements;
+@property (nonatomic, strong) UIView *upView;
 @end
 
 @implementation SHDCameraViewController{
