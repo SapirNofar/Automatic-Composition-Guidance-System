@@ -9,6 +9,7 @@
 // return bool, name func application, gets UIApplication* and NSDictionary*
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     [[UIApplication sharedApplication] setStatusBarHidden:YES]; // hide top status bar
+    [UIApplication sharedApplication].idleTimerDisabled = YES; // Turn off sleep mode
 
     UIStoryboard *mainStroyboard = [UIStoryboard storyboardWithName:kCameraStoryboardName bundle:nil];
     UIViewController *tmpVC = [mainStroyboard instantiateInitialViewController];
