@@ -6,6 +6,15 @@
 #import <UIKit/UIKitDefines.h>
 #import <UIKit/UIColor.h>
 #import <UIKit/UIGeometry.h>
+#import "ImageUtils.h"
+#import <CoreMotion/CoreMotion.h>
+#import "JPSVolumeButtonHandler.h"
+#import <MediaPlayer/MPVolumeView.h>
+
+#define FACTOR 1./18
+#define FACTORC 17./18
+#define SHOW 8./9
+#define NOSHOW 1./9
 
 
 @interface SHDCameraUtility () <AVCaptureVideoDataOutputSampleBufferDelegate>
@@ -38,8 +47,26 @@
     UIView *viewDown;
     UIView *viewDownRight1;
     UIView *viewDownRight2;
+    UIView *viewDownn;
+    UIView *viewRightt;
+    UIView *viewLeftt;
+    UIView *viewUpp;
+    
+    UIView *viewGridH1;
+    UIView *viewGridH2;
+    UIView *viewGridW1;
+    UIView *viewGridW2;
+    NSArray *grid;
 
-
+    
+    dispatch_group_t group;
+    dispatch_queue_t fasaQueue;
+    dispatch_queue_t lineQueue;
+    CMMotionManager *motionManager;
+    int w;
+    int h;
+    JPSVolumeButtonHandler *volumeButtonHandler;
+    
 }
 
 #pragma mark - Lifecycle
@@ -55,6 +82,13 @@
         blurView = [self visualEffectsViewWithFrame:[[[UIApplication sharedApplication] delegate] window].bounds];
         [self.videoLayerView addSubview:blurView];
         [self setupSession];
+        group = dispatch_group_create();
+        fasaQueue = dispatch_queue_create("FASAQueue", NULL);
+        lineQueue = dispatch_queue_create("LineQueue", NULL);
+        CGRect rect = CGRectMake(-500, -500, 0, 0);
+        MPVolumeView *volumeView = [[MPVolumeView alloc] initWithFrame: rect];
+        volumeView.showsRouteButton = NO;
+        [self.videoLayerView addSubview: volumeView];
     }
     return self;
 }
@@ -71,86 +105,110 @@
     return newView;
 }
 
-- (void)setupSession{
-    NSLog(@" %f, %f", _videoLayerView.frame.size.width, _videoPreviewLayer.frame.size.height);
-    counter = 0;
-    //Capture Session
-    _captureSession = [[AVCaptureSession alloc]init];
-    _captureSession.sessionPreset = AVCaptureSessionPresetPhoto; // full resolution of stream
+-(void) setupGyro{
+    motionManager = [[CMMotionManager alloc] init];
+    motionManager.accelerometerUpdateInterval = .1;
+    motionManager.gyroUpdateInterval = .1;
     
-    //Input
-    currentInput = [AVCaptureDeviceInput deviceInputWithDevice:[self rearCamera] error:nil];
-    if (!currentInput){
-        if ([self.delegate respondsToSelector:@selector(cameraUtilityDidStartVideoOutput:)]){
-            [self.delegate cameraUtilityDidStartVideoOutput:[NSError errorWithDomain:@"SHDCameraError" code:404 userInfo:@{@"description" : kNoAccessErrorDescription}]];
-        }
-        return;
-    }
+    [motionManager startAccelerometerUpdatesToQueue:[NSOperationQueue currentQueue]
+                                             withHandler:^(CMAccelerometerData  *accelerometerData, NSError *error) {
+                                                 [self outputAccelertionData:accelerometerData.acceleration];
+                                                 if(error){
+                                                     
+                                                     NSLog(@"%@", error);
+                                                 }
+                                             }
+     ];
     
-    [_captureSession addInput:currentInput];
-    
-    //Output
-    //    _stillImageOutput = [[AVCaptureStillImageOutput alloc] init];
-    //    NSDictionary *outputSettings = [[NSDictionary alloc] initWithObjectsAndKeys: AVVideoCodecJPEG, AVVideoCodecKey, nil];
-    //    [_stillImageOutput setOutputSettings:outputSettings];
-    //    [_captureSession addOutput:_stillImageOutput];
-    
-    // ADDED //
-    _stillImageOutput = [[AVCaptureVideoDataOutput alloc] init];
-    NSDictionary *outputSettings = [NSDictionary dictionaryWithObject: [NSNumber numberWithInt: kCVPixelFormatType_32BGRA] forKey: (id)kCVPixelBufferPixelFormatTypeKey];
-    _stillImageOutput.videoSettings = outputSettings;
-    [_captureSession addOutput:_stillImageOutput];
-    
-    dispatch_queue_t sampleQueue = dispatch_queue_create("SamppleQueue", NULL);
-    [_stillImageOutput setSampleBufferDelegate: self queue: sampleQueue];
-    
-//    _stillImageOutput.minFrameDuration = CMTimeMake(1, 30);  // how to sample???
-    
-    // UNTIL HERE //
-    
-    //Preview Layer
-    _videoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:_captureSession];
-    _videoPreviewLayer.frame = _videoLayerView.bounds;
-    _videoPreviewLayer.videoGravity = AVLayerVideoGravityResize;
-    [self.videoLayerView.layer insertSublayer:_videoPreviewLayer atIndex:0];
-    dispatch_queue_t algoQueue = dispatch_queue_create("AlgoQueue", NULL);
-    
-//    CGRect frameUpLeft = CGRectMake(0.0, 31.0, 21.0, 31.0);
-//    CGRect frameUp = CGRectMake(21.0, 31.0, 333.0, 31.0);
-//    CGRect frameUpRight = CGRectMake(354.0, 31.0, 21.0, 31.0);
-//    CGRect frameLeft = CGRectMake(0.0, 479.0, 21.0, 448.0);
-//    CGRect frameRight = CGRectMake(354.0, 479.0, 21.0, 448.0);
-//    CGRect frameDownLeft = CGRectMake(0.0, 550.0, 21.0, 31.0);
-//    CGRect frameDown = CGRectMake(21.0, 550.0, 333.0, 31.0);
-//    CGRect frameDownRight = CGRectMake(354.0, 550.0, 21.0, 31.0);
-
-    CGRect frameUpLeft1 = CGRectMake(0.0, 0.0, 94.0, 31.0);
-    CGRect frameUpLeft2 = CGRectMake(0.0, 0.0, 21.0, 138.0);
-    
-    CGRect frameUp = CGRectMake(94.0, 0.0, 187.0, 31.0);
-    
-    CGRect frameUpRight1 = CGRectMake(281.0, 0.0, 94.0, 31.0);
-    CGRect frameUpRight2 = CGRectMake(354.0, 0.0, 21.0, 138.0);
-    
-    CGRect frameLeft = CGRectMake(0.0, 138.0, 21.0, 247.0);
-    
-    CGRect frameRight = CGRectMake(354.0, 138.0, 21.0, 247.0);
-    
-    CGRect frameDownLeft1 = CGRectMake(0.0, 385.0, 21.0, 138.0);
-    CGRect frameDownLeft2 = CGRectMake(0.0, 519.0, 94.0, 31.0);
-    
-    CGRect frameDown = CGRectMake(94.0, 519.0, 187.0, 31.0);
-    
-    CGRect frameDownRight1 = CGRectMake(354.0, 385.0, 21.0, 138.0);
-    CGRect frameDownRight2 = CGRectMake(281.0, 519.0, 94.0, 31.0);
-
-    
-//    CGRect frame = CGRectMake(0.0, 500.0, 50.0, 50.0);
-//    UIView* view = [[UIView alloc] initWithFrame:frame];
-//    [view setBackgroundColor:[UIColor greenColor]];
-//    [self.videoLayerView addSubview:view];
+    [motionManager startGyroUpdatesToQueue:[NSOperationQueue currentQueue]
+                                    withHandler:^(CMGyroData *gyroData, NSError *error) {
+                                        [self outputRotationData:gyroData.rotationRate];
+                                    }
+     ];
+}
 
 
+-(void)outputAccelertionData:(CMAcceleration)acceleration
+{
+//    NSLog(@"accX: %.2fg",acceleration.x);
+//
+//    NSLog(@"accY: %.2fg",acceleration.y);
+//
+//    NSLog(@"accZ: %.2fg",acceleration.z);
+}
+
+-(void)outputRotationData:(CMRotationRate)rotation
+{
+//    NSLog(@"rotX: %.2fg",rotation.x);
+//
+//    NSLog(@"rotY: %.2fg",rotation.y);
+//
+//    NSLog(@"rotZ: %.2fg",rotation.z);
+}
+
+- (void) setupBorder{
+    h = self.videoLayerView.bounds.size.height;
+    w = self.videoLayerView.bounds.size.width;
+  
+    CGRect frameUpLeft1 = CGRectMake(0.0, 0.0, ceil(0.25*w), ceil(FACTOR*h));
+    CGRect frameUpLeft2 = CGRectMake(0.0, 0.0, ceil(FACTOR*w), floor(0.25*h));
+
+    CGRect frameUp = CGRectMake(floor(0.25*w), 0.0, ceil(0.5*w), ceil(FACTOR*h));
+
+    CGRect frameUpRight1 = CGRectMake(floor(0.25*w)+ceil(0.5*w), 0.0, floor(0.25*w), ceil(FACTOR*h));
+    CGRect frameUpRight2 = CGRectMake(floor(FACTORC*w), 0.0, ceil(FACTOR*w), floor(0.25*h));
+
+    CGRect frameLeft = CGRectMake(0.0, floor(0.25*h), ceil(FACTOR*w), ceil(0.5*h));
+
+    CGRect frameRight = CGRectMake(floor(FACTORC*w), floor(0.25*h), ceil(FACTOR*w), ceil(0.5*h));
+
+    CGRect frameDownLeft1 = CGRectMake(0.0, floor(0.25*h)+ceil(0.5*h), ceil(FACTOR*w), ceil(0.25*h));
+    CGRect frameDownLeft2 = CGRectMake(0.0, floor(FACTORC*h), floor(0.25*w), ceil(FACTOR*h));
+
+    CGRect frameDown = CGRectMake(floor(0.25*w), floor(FACTORC*h), ceil(0.5*w), ceil(FACTOR*h));
+
+    CGRect frameDownRight1 = CGRectMake(floor(FACTORC*w), floor(0.75*h), ceil(FACTOR*w), ceil(0.25*h));
+    CGRect frameDownRight2 = CGRectMake(floor(0.25*w)+ceil(0.5*w), floor(FACTORC*h), ceil(0.25*w), ceil(FACTOR*h));
+
+    float jump = 2.0;
+    CGRect up =  CGRectMake(ceil(FACTOR*w) - jump, ceil(FACTOR*h) - jump, floor((8./9)*w) + 2*jump, jump);
+
+    CGRect down =  CGRectMake(ceil(FACTOR*w) - jump, floor(FACTORC*h), floor((8./9)*w) + 2*jump, jump);
+
+    CGRect right =  CGRectMake(floor(FACTORC*w), ceil(FACTOR*h) - jump, jump, floor((8./9)*h) + 2*jump);
+
+    CGRect left =  CGRectMake(ceil(FACTOR*w) - jump, ceil(FACTOR*h) - jump, jump, floor((8./9)*h) + 2*jump);
+
+    
+//    CGRect frameUpLeft1 = CGRectMake(0.0, 0.0, 94.0, 31.0);
+//    CGRect frameUpLeft2 = CGRectMake(0.0, 0.0, 21.0, 138.0);
+//
+//    CGRect frameUp = CGRectMake(94.0, 0.0, 187.0, 31.0);
+//
+//    CGRect frameUpRight1 = CGRectMake(281.0, 0.0, 94.0, 31.0);
+//    CGRect frameUpRight2 = CGRectMake(354.0, 0.0, 21.0, 138.0);
+//
+//    CGRect frameLeft = CGRectMake(0.0, 138.0, 21.0, 247.0);
+//
+//    CGRect frameRight = CGRectMake(354.0, 138.0, 21.0, 247.0);
+//
+//    CGRect frameDownLeft1 = CGRectMake(0.0, 385.0, 21.0, 138.0);
+//    CGRect frameDownLeft2 = CGRectMake(0.0, 519.0, 94.0, 31.0);
+//
+//    CGRect frameDown = CGRectMake(94.0, 519.0, 187.0, 31.0);
+//
+//    CGRect frameDownRight1 = CGRectMake(354.0, 385.0, 21.0, 138.0);
+//    CGRect frameDownRight2 = CGRectMake(281.0, 519.0, 94.0, 31.0);
+//
+//    float jump = 2.0;
+//    CGRect up =  CGRectMake(21.0 - jump, 31.0 - jump, 333.0 + 2*jump, jump);
+//
+//    CGRect down =  CGRectMake(21.0 - jump, 519.0, 333.0 + 2*jump, jump);
+//
+//    CGRect right =  CGRectMake(354.0, 31.0-jump, jump, 488.0 + 2*jump);
+//
+//    CGRect left =  CGRectMake(21.0 - jump, 31.0 - jump, jump, 488.0 + 2*jump);
+    
     
     viewUpLeft1 = [[UIView alloc] initWithFrame:frameUpLeft1];
     [viewUpLeft1 setBackgroundColor:[UIColor blackColor]];
@@ -188,20 +246,33 @@
     viewDownRight2 = [[UIView alloc] initWithFrame:frameDownRight2];
     [viewDownRight2 setBackgroundColor:[UIColor blackColor]];
     
+    viewUpp = [[UIView alloc] initWithFrame:up];
+    [viewUpp setBackgroundColor:[UIColor blackColor]];
     
-//    UIView *view11 = [[UIView alloc] initWithFrame:frame11];
-//    [view1 setBackgroundColor:[UIColor orangeColor]];
+    viewDownn = [[UIView alloc] initWithFrame:down];
+    [viewDownn setBackgroundColor:[UIColor blackColor]];
+
+    viewRightt = [[UIView alloc] initWithFrame:right];
+    [viewRightt setBackgroundColor:[UIColor blackColor]];
+
+    viewLeftt = [[UIView alloc] initWithFrame:left];
+    [viewLeftt setBackgroundColor:[UIColor blackColor]];
     
-//    UIView *view2 = [[UIView alloc] initWithFrame:frame2];
-//    [view2 setBackgroundColor:[UIColor orangeColor]];
+
     
-//
-//    UIView *view3 = [[UIView alloc] initWithFrame:frame3];
-//    [view3 setBackgroundColor:[UIColor grayColor]];
+    //    UIView *view11 = [[UIView alloc] initWithFrame:frame11];
+    //    [view1 setBackgroundColor:[UIColor orangeColor]];
     
-//    [self.videoLayerView addSubview:view3];
-//    [self.videoLayerView addSubview:view2];
-//    [self.videoLayerView addSubview:view11];
+    //    UIView *view2 = [[UIView alloc] initWithFrame:frame2];
+    //    [view2 setBackgroundColor:[UIColor orangeColor]];
+    
+    //
+    //    UIView *view3 = [[UIView alloc] initWithFrame:frame3];
+    //    [view3 setBackgroundColor:[UIColor grayColor]];
+    
+    //    [self.videoLayerView addSubview:view3];
+    //    [self.videoLayerView addSubview:view2];
+    //    [self.videoLayerView addSubview:view11];
     [self.videoLayerView addSubview:viewUpLeft1];
     [self.videoLayerView addSubview:viewUpLeft2];
     [self.videoLayerView addSubview:viewUp];
@@ -214,13 +285,130 @@
     [self.videoLayerView addSubview:viewDown];
     [self.videoLayerView addSubview:viewDownRight1];
     [self.videoLayerView addSubview:viewDownRight2];
+    
+    [self.videoLayerView addSubview:viewUpp];
+    [self.videoLayerView addSubview:viewDownn];
+    [self.videoLayerView addSubview:viewRightt];
+    [self.videoLayerView addSubview:viewLeftt];
+    
 
+
+
+}
+
+-(void) setupGrid{
+    float i = w*SHOW / 3;
+    float j = h*SHOW / 3;
+
+    CGRect gridH1 = CGRectMake(FACTOR*w+i, FACTOR*h, 2, SHOW*h);
+    CGRect gridH2 = CGRectMake(FACTOR*w+ 2*i, FACTOR*h, 2, SHOW*h);
+    CGRect gridW1 = CGRectMake(FACTOR*w, FACTOR*w+j, SHOW*w, 2);
+    CGRect gridW2 = CGRectMake(FACTOR*w, FACTOR*w+ 2*j, SHOW*w, 2);
+
+    viewGridH1 = [[UIView alloc] initWithFrame:gridH1];
+    viewGridH2 = [[UIView alloc] initWithFrame:gridH2];
+    viewGridW1 = [[UIView alloc] initWithFrame:gridW1];
+    viewGridW2 = [[UIView alloc] initWithFrame:gridW2];
+    
+    grid = @[viewGridH1, viewGridH2, viewGridW1, viewGridW2];
+
+    [grid setValue:[UIColor grayColor] forKey:@"backgroundColor"];
+    [grid setValue:[NSNumber numberWithFloat:0.5] forKey:@"alpha"];
+    [grid setValue: [NSNumber numberWithBool:YES] forKey:@"hidden"];
+
+    
+    [self.videoLayerView addSubview:viewGridH1];
+    [self.videoLayerView addSubview:viewGridH2];
+    [self.videoLayerView addSubview:viewGridW1];
+    [self.videoLayerView addSubview:viewGridW2];
+
+
+}
+
+-(void) showGrid
+{
+    [grid setValue: [NSNumber numberWithBool:NO] forKey:@"hidden"];
+}
+
+-(void) hideGrid
+{
+    [grid setValue: [NSNumber numberWithBool:YES] forKey:@"hidden"];
+}
+
+- (void)setupSession{
+    NSLog(@" %f, %f", _videoLayerView.frame.size.width, _videoPreviewLayer.frame.size.height);
+    counter = 0;
+    //Capture Session
+    _captureSession = [[AVCaptureSession alloc]init];
+    _captureSession.sessionPreset = AVCaptureSessionPresetPhoto; // full resolution of stream
+    
+    //Input
+    currentInput = [AVCaptureDeviceInput deviceInputWithDevice:[self rearCamera] error:nil];
+    if (!currentInput){
+        if ([self.delegate respondsToSelector:@selector(cameraUtilityDidStartVideoOutput:)]){
+            [self.delegate cameraUtilityDidStartVideoOutput:[NSError errorWithDomain:@"SHDCameraError" code:404 userInfo:@{@"description" : kNoAccessErrorDescription}]];
+        }
+        return;
+    }
+    
+    [_captureSession addInput:currentInput];
+    
+    //Output
+    //    _stillImageOutput = [[AVCaptureStillImageOutput alloc] init];
+    //    NSDictionary *outputSettings = [[NSDictionary alloc] initWithObjectsAndKeys: AVVideoCodecJPEG, AVVideoCodecKey, nil];
+    //    [_stillImageOutput setOutputSettings:outputSettings];
+    //    [_captureSession addOutput:_stillImageOutput];
+    
+    // ADDED //
+    _stillImageOutput = [[AVCaptureVideoDataOutput alloc] init];
+    NSDictionary *outputSettings = [NSDictionary dictionaryWithObject: [NSNumber numberWithInt: kCVPixelFormatType_32BGRA] forKey: (id)kCVPixelBufferPixelFormatTypeKey];
+    _stillImageOutput.videoSettings = outputSettings;
+    [_captureSession addOutput:_stillImageOutput];
+    
+    dispatch_queue_t sampleQueue = dispatch_queue_create("SamppleQueue", NULL);
+    [_stillImageOutput setSampleBufferDelegate: self queue: sampleQueue];
+    
+//    _stiloulImageOutput.minFrameDuration = CMTimeMake(1, 30);  // how to sample???
+    
+    // UNTIL HERE //
+    
+    //Preview Layer
+    _videoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:_captureSession];
+    _videoPreviewLayer.frame = _videoLayerView.bounds;
+    _videoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+    [self.videoLayerView.layer insertSublayer:_videoPreviewLayer atIndex:0];
+    dispatch_queue_t algoQueue = dispatch_queue_create("AlgoQueue", NULL);
+    
+//    CGRect frameUpLeft = CGRectMake(0.0, 31.0, 21.0, 31.0);
+//    CGRect frameUp = CGRectMake(21.0, 31.0, 333.0, 31.0);
+//    CGRect frameUpRight = CGRectMake(354.0, 31.0, 21.0, 31.0);
+//    CGRect frameLeft = CGRectMake(0.0, 479.0, 21.0, 448.0);
+//    CGRect frameRight = CGRectMake(354.0, 479.0, 21.0, 448.0);
+//    CGRect frameDownLeft = CGRectMake(0.0, 550.0, 21.0, 31.0);
+//    CGRect frameDown = CGRectMake(21.0, 550.0, 333.0, 31.0);
+//    CGRect frameDownRight = CGRectMake(354.0, 550.0, 21.0, 31.0);
+
+    volumeButtonHandler = [JPSVolumeButtonHandler volumeButtonHandlerWithUpBlock:^{
+        // Volume Up Button Pressed
+        NSLog(@"+++++++++++++++++++++++++++++++++++++++");
+        [self showGrid];
+
+    } downBlock:^{
+        // Volume Down Button Pressed
+        NSLog(@"---------------------------------------");
+        [self hideGrid];
+
+    }];
+    
+    [volumeButtonHandler startHandler:YES];
 
 
     //Start capture session
     [_captureSession startRunning];
     aTimer = CreateDispatchTimer(2ull,1ull,algoQueue, ^{ [self callingOurAlgo]; });
-
+    [self setupBorder];
+    [self setupGyro];
+    [self setupGrid];
     busy = NO;
 //    timer = [NSTimer scheduledTimerWithTimeInterval:2.0
 //                                     target:self
@@ -270,7 +458,7 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
     UIDeviceOrientation currentDeviceOrientation = UIDevice.currentDevice.orientation;
     float imgHeight = 666.0f; //Any according to requirement
     float imgWidth = 976.0f; //Any according to requirement
-    CGRect cropRect = CGRectMake(21.0f, 31.0f ,imgWidth,imgHeight);
+    CGRect cropRect = CGRectMake(FACTOR*w, FACTOR*h ,imgWidth,imgHeight);
     
     CGImageRef imageRef = CGImageCreateWithImageInRect([image CGImage], cropRect);
     // or use the UIImage wherever you like
@@ -317,7 +505,7 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
 
 -(void)finalizeLoadWithView:(UIView *)sourceView{
     _videoPreviewLayer.frame = sourceView.bounds;
-    _videoPreviewLayer.videoGravity = AVLayerVideoGravityResize;
+    _videoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
     [self hideBlurViewAnimated:YES];
 }
 
@@ -404,9 +592,13 @@ dispatch_source_t CreateDispatchTimer(uint64_t interval,
 didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
        fromConnection:(AVCaptureConnection *)connection
 {
-    // Create a UIImage from the sample buffer data
+    image = nil;
+    // Create a UIImage from the sample buffer data here!!!!!!!! take care
+//    NSLog(@"in capture");
+
     image = [self imageFromSampleBuffer:sampleBuffer];
-    
+//    NSLog(@"in capture");
+
 //    NSLog(@"in capture");
 //    NSLog(@"busy %i", busy);
 
@@ -421,11 +613,25 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     if (!busy)
     {
         busy = YES;
-        cv::Mat img = [self cvMatFromUIImage];
+
+        cv::Mat img = [ImageUtils cvMatFromUIImage:image];
         //double score = getScore(img);
-        
-        int zone = getImageScore(img); // from nofar
-        
+        NSArray *borders = @[viewUpp, viewLeftt, viewRightt, viewDownn];
+
+        dispatch_sync(dispatch_get_main_queue(), ^{
+
+            [borders setValue:[UIColor yellowColor] forKey:@"backgroundColor"];
+
+//            [UIView animateWithDuration:0.1 delay:0 options:UIViewAnimationOptionRepeat animations:^{
+//                [UIView setAnimationRepeatCount:1];
+//                [borders setValue:[UIColor blackColor] forKey:@"backgroundColor"];
+//
+//            } completion:nil];
+        });
+
+        int zone = getImageScore(img, group, fasaQueue, lineQueue); // from nofar
+        NSLog(@"finished algo");
+        img.release();
         NSString *msg;
         NSArray *buttons = nil;
         switch(zone)
@@ -448,6 +654,8 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
                 break;
             case 4 :
                 msg = @"STAY";
+                buttons = @[viewUpLeft1, viewUpLeft2, viewUp, viewUpRight1, viewUpRight2, viewLeft, viewRight, viewDownLeft1, viewDownLeft2, viewDown, viewDownRight1, viewDownRight2];
+
                 break;
             case 5 :
                 msg = @"RIGHT";
@@ -469,35 +677,17 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
                 msg = @"Invalid";
         }
 
-        dispatch_async(dispatch_get_main_queue(), ^{
-            
-            [UIView animateWithDuration:0.5 delay:0 options:UIViewAnimationOptionRepeat | UIViewAnimationOptionAutoreverse animations:^{
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [borders setValue:[UIColor blackColor] forKey:@"backgroundColor"];
+            [UIView animateWithDuration:0.2 delay:0.15 options:UIViewAnimationOptionRepeat | UIViewAnimationOptionAutoreverse animations:^{
                 [UIView setAnimationRepeatCount:1];
                 [buttons setValue:[UIColor whiteColor] forKey:@"backgroundColor"];
-            } completion:^(BOOL finished){ [UIView animateWithDuration:0.5 delay:0.5 options:UIViewAnimationOptionBeginFromCurrentState animations:^{
+            } completion:^(BOOL finished){ [UIView animateWithDuration:0.2 delay:0.1 options:UIViewAnimationOptionBeginFromCurrentState animations:^{
                 [UIView setAnimationRepeatCount:1];
                 [buttons setValue:[UIColor blackColor] forKey:@"backgroundColor"];
             } completion:nil];}];
-            
-//            [buttons setValue:[UIColor blackColor] forKey:@"backgroundColor"];
-            
-            
-            UIAlertView *alertView = [[UIAlertView alloc]
-                                      initWithTitle:@"zone"
-                                      message:msg
-                                      delegate:nil
-                                      cancelButtonTitle:nil
-                                      otherButtonTitles:nil
-                                      ];
-            [alertView show];
-            [self performSelector:@selector(dismissAlert:)
-                       withObject:alertView
-                       afterDelay:1.0
-             ];
-
-            
         });
-        
+
         busy = NO;
     }
 }
@@ -532,43 +722,22 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
                                                  bytesPerRow, colorSpace, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst);
     // Create a Quartz image from the pixel data in the bitmap graphics context
     CGImageRef quartzImage = CGBitmapContextCreateImage(context);
-    // Unlock the pixel buffer
-    CVPixelBufferUnlockBaseAddress(imageBuffer,0);
     
     // Free up the context and color space
     CGContextRelease(context);
     CGColorSpaceRelease(colorSpace);
     
+    // Unlock the pixel buffer
+    CVPixelBufferUnlockBaseAddress(imageBuffer,0);
+    
     // Create an image object from the Quartz image
-    UIImage *image = [UIImage imageWithCGImage:quartzImage];
+    UIImage *im = [UIImage imageWithCGImage:quartzImage];
     
     // Release the Quartz image
     CGImageRelease(quartzImage);
     
-    return (image);
-}
-
-- (cv::Mat)cvMatFromUIImage
-{
-    CGColorSpaceRef colorSpace = CGImageGetColorSpace(image.CGImage);
-    CGFloat cols = image.size.width;
-    CGFloat rows = image.size.height;
     
-    cv::Mat cvMat(rows, cols, CV_8UC4); // 8 bits per component, 4 channels (color channels + alpha)
-    
-    CGContextRef contextRef = CGBitmapContextCreate(cvMat.data,                 // Pointer to  data
-                                                    cols,                       // Width of bitmap
-                                                    rows,                       // Height of bitmap
-                                                    8,                          // Bits percomponent
-                                                    cvMat.step[0],              // Bytes per row
-                                                    colorSpace,                 // Colorspace
-                                                    kCGImageAlphaNoneSkipLast |
-                                                    kCGBitmapByteOrderDefault); // Bitmap info flags
-    
-    CGContextDrawImage(contextRef, CGRectMake(0, 0, cols, rows), image.CGImage);
-    CGContextRelease(contextRef);
-    
-    return cvMat;
+    return im;
 }
 
 
