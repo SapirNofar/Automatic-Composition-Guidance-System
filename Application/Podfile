@@ -6,5 +6,6 @@ target 'CameraAppTemplate' do
 
 pod 'EAIntroView', '~> 2.8.0'
 pod 'AFNetworking', '~> 2.5'
+pod 'JPSVolumeButtonHandler'
 
 end
