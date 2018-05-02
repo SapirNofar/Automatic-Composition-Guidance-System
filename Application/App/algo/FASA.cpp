@@ -203,6 +203,11 @@ void calculateHistogram(Mat im,
 
         }
     }
+    lab.release();
+    Lshift.release();
+    Ashift.release();
+    Bshift.release();
+    
 
 }
 
@@ -544,147 +549,163 @@ void outputHowToUse(){
 
 Mat getFASA(Mat im) {
 
-    bool isimage;
-    Mat a;
-
     float totalColor = 0;
-
     float totalPixels = 0;
-
-
 
     for (int i = 0; i < squares.cols; i++)
         squaresPtr[i] = pow(i, 2);
 
-    while (1) {
-
-        if (im.data) {
-
-            Mat lab;
-
-            totalPixels += im.cols * im.rows;
+    totalPixels += im.cols * im.rows;
 
 //////////////////////// SALIENCY COMPUTATION STARTS HERE ////////////////////////
 
-            LAB.clear();
-            L.clear();
-            A.clear();
-            B.clear();
+    LAB.clear();
+    L.clear();
+    A.clear();
+    B.clear();
 
-            Mat averageX, averageY, averageX2, averageY2, histogram, histogramIndex;
+    Mat averageX, averageY, averageX2, averageY2, histogram, histogramIndex;
 
-            vector<float> LL, AA, BB;
+    vector<float> LL, AA, BB;
 
-            calculateHistogram(im,
-                               averageX,
-                               averageY,
-                               averageX2,
-                               averageY2,
-                               LL,
-                               AA,
-                               BB,
-                               histogram,
-                               histogramIndex);
+    calculateHistogram(im,
+                       averageX,
+                       averageY,
+                       averageX2,
+                       averageY2,
+                       LL,
+                       AA,
+                       BB,
+                       histogram,
+                       histogramIndex);
 
-            float *averageXPtr = averageX.ptr<float>(0);
-            float *averageYPtr = averageY.ptr<float>(0);
-            float *averageX2Ptr = averageX2.ptr<float>(0);
-            float *averageY2Ptr = averageY2.ptr<float>(0);
-
-            int *histogramPtr = histogram.ptr<int>(0);
-
-            Mat map, colorDistance, exponentialColorDistance;
-
-            vector<int> reverseMap;
-
-            int numberOfColors = precomputeParameters(histogram,
-                                                      LL,
-                                                      AA,
-                                                      BB,
-                                                      im.cols * im.rows,
-                                                      reverseMap,
-                                                      map,
-                                                      colorDistance,
-                                                      exponentialColorDistance);
-
-            totalColor += numberOfColors;
-
-            int *mapPtr = map.ptr<int>(0);
-
-            Mat mx, my, Vx, Vy, contrast;
-
-            bilateralFiltering(colorDistance,
-                               exponentialColorDistance,
-                               reverseMap,
-                               histogramPtr,
-                               averageXPtr,
-                               averageYPtr,
-                               averageX2Ptr,
-                               averageY2Ptr,
-                               mx,
-                               my,
-                               Vx,
-                               Vy,
-                               contrast);
-
-            Mat Xsize, Ysize, Xcenter, Ycenter, shapeProbability;
-
-            calculateProbability(mx,
-                                 my,
-                                 Vx,
-                                 Vy,
-                                 modelMean,
-                                 modelInverseCovariance,
-                                 im.cols,
-                                 im.rows,
-                                 Xsize,
-                                 Ysize,
-                                 Xcenter,
-                                 Ycenter,
-                                 shapeProbability);
+    float *averageXPtr = averageX.ptr<float>(0);
+    float *averageYPtr = averageY.ptr<float>(0);
+    float *averageX2Ptr = averageX2.ptr<float>(0);
+    float *averageY2Ptr = averageY2.ptr<float>(0);
+    
 
 
-            Mat SM = Mat::zeros(im.rows, im.cols, CV_8UC1);
+    int *histogramPtr = histogram.ptr<int>(0);
 
-            Mat saliency;
+    Mat map, colorDistance, exponentialColorDistance;
 
-            computeSaliencyMap(shapeProbability,
-                               contrast,
-                               exponentialColorDistance,
-                               histogramIndex,
-                               mapPtr,
-                               SM,
-                               saliency);
+    vector<int> reverseMap;
 
-            double minVal, maxVal;
+    int numberOfColors = precomputeParameters(histogram,
+                                              LL,
+                                              AA,
+                                              BB,
+                                              im.cols * im.rows,
+                                              reverseMap,
+                                              map,
+                                              colorDistance,
+                                              exponentialColorDistance);
 
-            minMaxLoc(shapeProbability, &minVal, &maxVal);
+    totalColor += numberOfColors;
 
-            shapeProbability = shapeProbability - minVal;
-            shapeProbability = shapeProbability / (maxVal - minVal + 1e-3);
+    int *mapPtr = map.ptr<int>(0);
 
-            float* shapeProbabilityPtr      = shapeProbability.ptr<float>(0);
+    Mat mx, my, Vx, Vy, contrast;
 
-            Mat saliencyProbabilityImage    = Mat::zeros(im.rows, im.cols, CV_32FC1);
+    bilateralFiltering(colorDistance,
+                       exponentialColorDistance,
+                       reverseMap,
+                       histogramPtr,
+                       averageXPtr,
+                       averageYPtr,
+                       averageX2Ptr,
+                       averageY2Ptr,
+                       mx,
+                       my,
+                       Vx,
+                       Vy,
+                       contrast);
+    
+    averageX.release();
+    averageY.release();
+    averageX2.release();
+    averageY2.release();
 
-            for (int y = 0; y < im.rows; y++){
+    Mat Xsize, Ysize, Xcenter, Ycenter, shapeProbability;
 
-                float* saliencyProbabilityImagePtr  = saliencyProbabilityImage.ptr<float>(y);
+    calculateProbability(mx,
+                         my,
+                         Vx,
+                         Vy,
+                         modelMean,
+                         modelInverseCovariance,
+                         im.cols,
+                         im.rows,
+                         Xsize,
+                         Ysize,
+                         Xcenter,
+                         Ycenter,
+                         shapeProbability);
 
-                int* histogramIndexPtr = histogramIndex.ptr<int>(y);
 
-                for (int x = 0; x < im.cols; x++){
+    mx.release();
+    my.release();
+    Vx.release();
+    Vy.release();
+    Xsize.release();
+    Ysize.release();
+    Xcenter.release();
+    Ycenter.release();
+    
+    Mat SM = Mat::zeros(im.rows, im.cols, CV_8UC1);
 
-                    saliencyProbabilityImagePtr[x]  = shapeProbabilityPtr[mapPtr[histogramIndexPtr[x]]];
+    Mat saliency;
 
-                }
-            }
+    computeSaliencyMap(shapeProbability,
+                       contrast,
+                       exponentialColorDistance,
+                       histogramIndex,
+                       mapPtr,
+                       SM,
+                       saliency);
+    
+    histogram.release();
+    colorDistance.release();
+    exponentialColorDistance.release();
+    contrast.release();
+    saliency.release();
+    SM.release();
 
-            saliencyProbabilityImage = 255 * saliencyProbabilityImage;
-            saliencyProbabilityImage.convertTo(saliencyProbabilityImage, CV_8UC1);
-            return saliencyProbabilityImage;
+    double minVal, maxVal;
+
+    minMaxLoc(shapeProbability, &minVal, &maxVal);
+
+    shapeProbability = shapeProbability - minVal;
+    shapeProbability = shapeProbability / (maxVal - minVal + 1e-3);
+
+    float* shapeProbabilityPtr      = shapeProbability.ptr<float>(0);
+
+    Mat saliencyProbabilityImage    = Mat::zeros(im.rows, im.cols, CV_32FC1);
+
+    for (int y = 0; y < im.rows; y++){
+
+        float* saliencyProbabilityImagePtr  = saliencyProbabilityImage.ptr<float>(y);
+
+        int* histogramIndexPtr = histogramIndex.ptr<int>(y);
+
+        for (int x = 0; x < im.cols; x++){
+
+            saliencyProbabilityImagePtr[x]  = shapeProbabilityPtr[mapPtr[histogramIndexPtr[x]]];
+
         }
     }
+
+    shapeProbability.release();
+    
+    saliencyProbabilityImage = 255 * saliencyProbabilityImage;
+    saliencyProbabilityImage.convertTo(saliencyProbabilityImage, CV_8UC1);
+//    saliencyProbabilityImage.release();
+    map.release();
+    histogramIndex.release();
+    return saliencyProbabilityImage;
+
+
 }
 
 
